@@ -50,6 +50,18 @@
 /** Purges the cache.  It releases the retained instance. */
 +(void)purgeSharedTextureCache;
 
+@property (nonatomic, readonly) EAGLContext *auxGLcontext;
+
++ (BOOL)supportsFastTextureUpload;
+
+/**
+ * Если нам когда-то не удалось создать текстуру через Core Video TextureCache, то нужно вызывать этот метод
+ */
++ (void)setDoesNotSupportFastTextureUpload;
+
+@property (nonatomic, readonly) CVOpenGLESTextureCacheRef videoTextureCache;
+
+
 /**
  * Returns a Texture2D object given an file image.
  *
