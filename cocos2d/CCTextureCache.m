@@ -62,6 +62,9 @@ static NSOpenGLContext *_auxGLcontext = nil;
 #pragma mark TextureCache - Alloc, Init & Dealloc
 static CCTextureCache *sharedTextureCache;
 
+static BOOL doesNotSupportFastTextureUpload;
+static CVOpenGLESTextureCacheRef videoTextureCache;
+
 + (CCTextureCache *)sharedTextureCache
 {
 	if (!sharedTextureCache)
@@ -79,6 +82,34 @@ static CCTextureCache *sharedTextureCache;
 +(void)purgeSharedTextureCache
 {
 	sharedTextureCache = nil;
+}
+
++ (BOOL)supportsFastTextureUpload
+{
+	if (doesNotSupportFastTextureUpload) {
+		return NO;
+	}
+#if TARGET_IPHONE_SIMULATOR
+    return NO;
+#else
+	return (CVOpenGLESTextureCacheCreate != NULL);
+#endif
+}
+
++ (void)setDoesNotSupportFastTextureUpload
+{
+	doesNotSupportFastTextureUpload = YES;
+	NSLog(@"CVOpenGLESTextureCache does not works");
+}
+
+- (CVOpenGLESTextureCacheRef)videoTextureCache
+{
+	return videoTextureCache;
+}
+
+- (EAGLContext *)auxGLcontext
+{
+	return _auxGLcontext;
 }
 
 -(id) init
@@ -108,6 +139,16 @@ static CCTextureCache *sharedTextureCache;
 
 		NSAssert( _auxGLcontext, @"TextureCache: Could not create EAGL context");
 
+		if ([CCTextureCache supportsFastTextureUpload]) {
+			CVReturn err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, (__bridge CVEAGLContext)((__bridge void *)_auxGLcontext), NULL, &videoTextureCache);
+			if (err) {
+				NSLog(@"Error at CVOpenGLESTextureCacheCreate %d", err);
+				doesNotSupportFastTextureUpload = YES;
+			} else {
+				NSLog(@"Trying to use CVOpenGLESTextureCache");
+			}
+		}
+
 	}
 
 	return self;
@@ -133,7 +174,11 @@ static CCTextureCache *sharedTextureCache;
     
 	_auxGLcontext = nil;
 	sharedTextureCache = nil;
-    
+
+	if (videoTextureCache) {
+		CVOpenGLESTextureCacheFlush(videoTextureCache, 0);
+	}
+
 	// dispatch_release(_loadingQueue);
 	// dispatch_release(_dictQueue);
     
