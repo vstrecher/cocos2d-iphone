@@ -109,7 +109,7 @@ typedef NS_ENUM(NSInteger, CCTransitionFixedFunction)
     // set up fixed function transition
     _fixedFunction = function;
     _direction = direction;
-    _color = (ccColor4F){(float)color.r / 255, (float)color.g / 255, (float)color.b / 255, 1};
+    self.colorRGBA = [CCColor colorWithCcColor4f:(ccColor4F){(float)color.r / 255, (float)color.g / 255, (float)color.b / 255, 1}];
     _drawSelector = @selector(drawFixedFunction);
     _outgoingOverIncoming = NO;
     
@@ -166,7 +166,8 @@ typedef NS_ENUM(NSInteger, CCTransitionFixedFunction)
     _runTime = 0.0f;
     _progress = 0.0f;
     
-    _transitionPixelFormat = CCTexturePixelFormat_RGB565;
+    _transitionPixelFormat = CCTexturePixelFormat_RGBA8888;
+		_transitionDepthStencilFormat = GL_DEPTH24_STENCIL8;
     
     // disable touch during transition
     self.userInteractionEnabled = NO;
@@ -198,13 +199,13 @@ typedef NS_ENUM(NSInteger, CCTransitionFixedFunction)
 		size.height = ceil(rect.size.height);
 
     // create texture for outgoing scene
-    _outgoingTexture = [CCRenderTexture renderTextureWithWidth:size.width height:size.height pixelFormat:_transitionPixelFormat];
+    _outgoingTexture = [CCRenderTexture renderTextureWithWidth:size.width height:size.height pixelFormat:_transitionPixelFormat depthStencilFormat:_transitionDepthStencilFormat];
     _outgoingTexture.position = CGPointMake(size.width * 0.5f + rect.origin.x, size.height * 0.5f + rect.origin.y);
     _outgoingTexture.contentScale /= _outgoingDownScale;
     [self addChild:_outgoingTexture z:_outgoingOverIncoming];
     
     // create texture for incoming scene
-    _incomingTexture = [CCRenderTexture renderTextureWithWidth:size.width height:size.height pixelFormat:_transitionPixelFormat];
+    _incomingTexture = [CCRenderTexture renderTextureWithWidth:size.width height:size.height pixelFormat:_transitionPixelFormat depthStencilFormat:_transitionDepthStencilFormat];
     _incomingTexture.position = CGPointMake(size.width * 0.5f + rect.origin.x, size.height * 0.5f + rect.origin.y);
     _incomingTexture.contentScale /= _incomingDownScale;
     [self addChild:_incomingTexture];
@@ -268,15 +269,16 @@ typedef NS_ENUM(NSInteger, CCTransitionFixedFunction)
 
 - (void)renderOutgoing:(float)progress
 {
-    #warning TODO Should make a CCScene.clearColor property.
-    [_outgoingTexture beginWithClear:0 g:0 b:0 a:1];
+    GLKVector4 c = _outgoingScene.colorRGBA.glkVector4;
+    [_outgoingTexture beginWithClear:c.r g:c.g b:c.b a:c.a depth:1.0 stencil:0];
 	    [_outgoingScene visit];
     [_outgoingTexture end];
 }
 
 - (void)renderIncoming:(float)progress
 {
-    [_incomingTexture beginWithClear:0 g:0 b:0 a:1];
+    GLKVector4 c = _outgoingScene.colorRGBA.glkVector4;
+    [_incomingTexture beginWithClear:c.r g:c.g b:c.b a:c.a depth:1.0 stencil:0];
 	    [_incomingScene visit];
     [_incomingTexture end];
 }
@@ -324,8 +326,6 @@ typedef NS_ENUM(NSInteger, CCTransitionFixedFunction)
             _outgoingTexture.sprite.opacity = 1;
             break;
         case CCTransitionFixedFunctionFadeWithColor:
-				    #warning TODO
-            glClearColor(_color.r, _color.g, _color.b, _color.a);
             _incomingTexture.sprite.opacity = clampf(2.0 * (_progress - 0.5), 0, 1);
             _outgoingTexture.sprite.opacity = clampf(1.0 * (1 - (2 * _progress)), 0, 1);
             break;
