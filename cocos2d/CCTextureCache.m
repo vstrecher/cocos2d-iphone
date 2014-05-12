@@ -26,7 +26,6 @@
  */
 
 #import "ccMacros.h"
-#import "Platforms/CCGL.h"
 #import "CCTextureCache.h"
 #import "CCTexture.h"
 #import "CCTexturePVR.h"

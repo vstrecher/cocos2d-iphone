@@ -31,6 +31,7 @@
 #import <CoreGraphics/CGImage.h>
 #endif
 
+#import "Platforms/CCGL.h"
 #import <Foundation/Foundation.h>
 
 @class CCTexture;
